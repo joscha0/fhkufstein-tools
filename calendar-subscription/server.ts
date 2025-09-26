@@ -1,8 +1,7 @@
 import express from "express";
 import type { Request, Response } from "express";
 import fetch from "node-fetch";
-import ical from "ical-generator";
-import type { ICalCalendar } from "ical-generator";
+import ical, { ICalCalendar } from "ical-generator";
 import moment from "moment-timezone";
 
 const app = express();
