@@ -1,6 +1,8 @@
 {
 	"scripts": {
-		"dev": "ts-node server.ts"
+		"dev": "ts-node src/server.ts",
+		"build": "tsc",
+    	"start": "node dist/server.js"
 	},
 	"type": "module",
 	"dependencies": {
