@@ -1,7 +1,7 @@
 import express from "express";
 import type { Request, Response } from "express";
 import fetch from "node-fetch";
-import ical, { ICalCalendar } from "ical-generator";
+import { ICalCalendar } from "ical-generator";
 import moment from "moment-timezone";
 
 const app = express();
@@ -40,7 +40,7 @@ async function fetchEvents(
  * Transform API events into ICS calendar with Europe/Vienna TZ
  */
 function createCalendar(events: UniEvent[], pkz: string): ICalCalendar {
-  const calendar = ical({
+  const calendar = new ICalCalendar({
     name: `FH Kufstein (${pkz})`,
     timezone: "Europe/Vienna", // ensures correct CET/CEST handling
     prodId: {
