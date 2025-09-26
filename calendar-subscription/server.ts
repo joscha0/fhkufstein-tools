@@ -1,17 +1,12 @@
 import express from "express";
+import type { Request, Response } from "express";
 import fetch from "node-fetch";
-import { createEvents } from "ics";
+import ical from "ical-generator";
+import type { ICalCalendar } from "ical-generator";
+import moment from "moment-timezone";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-export interface EventAttributes {
-  title: string;
-  start: [number, number, number, number, number]; // [Y, M, D, H, M]
-  end: [number, number, number, number, number];
-  location?: string;
-  description?: string;
-}
 
 interface UniEvent {
   date: string; // "YYYY-MM-DD"
@@ -43,54 +38,64 @@ async function fetchEvents(
 }
 
 /**
- * Convert events to ICS format
+ * Transform API events into ICS calendar with Europe/Vienna TZ
  */
-function transformToIcs(events: UniEvent[]): string {
-  const icsEvents: EventAttributes[] = events.map((ev) => {
-    const [year, month, day] = ev.date.split("-").map(Number);
-    const [sh, sm] = ev.startTime.split(":").map(Number);
-    const [eh, em] = ev.endTime.split(":").map(Number);
+function createCalendar(events: UniEvent[], pkz: string): ICalCalendar {
+  const calendar = ical({
+    name: `FH Kufstein (${pkz})`,
+    timezone: "Europe/Vienna", // ensures correct CET/CEST handling
+    prodId: {
+      company: "joscha0/fhkufstein-tools",
+      product: "calendar-subscription",
+    },
+  });
 
-    return {
-      title: ev.courseName,
-      start: [year, month, day, sh, sm],
-      end: [year, month, day, eh, em],
-      location: ev.room || "",
+  for (const ev of events) {
+    const start = moment.tz(
+      `${ev.date} ${ev.startTime}`,
+      "YYYY-MM-DD HH:mm",
+      "Europe/Vienna"
+    );
+    const end = moment.tz(
+      `${ev.date} ${ev.endTime}`,
+      "YYYY-MM-DD HH:mm",
+      "Europe/Vienna"
+    );
+
+    calendar.createEvent({
+      start,
+      end,
+      summary: ev.courseName,
       description: `${ev.courseName} | Lecturer: ${ev.lecturer} | Info: ${
         ev.info || ""
       }`,
-    };
-  });
-
-  const { error, value } = createEvents(icsEvents);
-  if (error || !value) {
-    console.error("ICS generation error:", error);
-    throw error;
+      location: ev.room || "",
+    });
   }
-  return value;
+
+  return calendar;
 }
 
 /**
- * Route: GET /calendar/<pkz>.ics
- * Serves the ICS file for a given student (pkz)
+ * Route: GET /calendar/:pkz.ics
  */
-app.get("/calendar/:pkz.ics", async (req, res) => {
+app.get("/calendar/:pkz.ics", async (req: Request, res: Response) => {
   const { pkz } = req.params;
 
-  // date range → today until +12 months
+  // fetch from today to +12 months
   const today = new Date();
   const startDate = today.toLocaleDateString("de-DE"); // DD.MM.YYYY
-  const end = new Date(today);
-  end.setMonth(end.getMonth() + 12);
-  const endDate = end.toLocaleDateString("de-DE");
+  const endDate = new Date(
+    today.setMonth(today.getMonth() + 12)
+  ).toLocaleDateString("de-DE");
 
   try {
     const events = await fetchEvents(startDate, endDate, pkz);
-    const icsContent = transformToIcs(events);
+    const calendar = createCalendar(events, pkz);
 
-    res.setHeader("Content-Type", "text/calendar");
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="${pkz}.ics"`);
-    res.send(icsContent);
+    res.send(calendar.toString());
   } catch (err) {
     console.error(err);
     res.status(500).send("Failed to generate calendar");
@@ -98,5 +103,5 @@ app.get("/calendar/:pkz.ics", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`📅 Calendar server running on http://localhost:${PORT}`);
+  console.log(`📅 Calendar server running at http://localhost:${PORT}`);
 });
