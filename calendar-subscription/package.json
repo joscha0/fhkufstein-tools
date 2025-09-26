@@ -1,0 +1,19 @@
+{
+	
+	"scripts": {
+		"dev": "ts-node server.ts"
+	},
+  	"type": "module",
+	"dependencies": {
+		"express": "^5.1.0",
+		"ics": "^3.8.1",
+		"node-fetch": "^3.3.2"
+	},
+	"devDependencies": {
+		"@types/express": "^5.0.3",
+		"@types/node": "^24.5.2",
+		"@types/node-fetch": "^2.6.13",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.9.2"
+	}
+}
