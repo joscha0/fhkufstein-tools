@@ -42,7 +42,6 @@ async function fetchEvents(
 function createCalendar(events: UniEvent[], pkz: string): ICalCalendar {
   const calendar = new ICalCalendar({
     name: `FH Kufstein (${pkz})`,
-    timezone: "Europe/Vienna", // ensures correct CET/CEST handling
     prodId: {
       company: "joscha0/fhkufstein-tools",
       product: "calendar-subscription",
@@ -62,8 +61,8 @@ function createCalendar(events: UniEvent[], pkz: string): ICalCalendar {
     );
 
     calendar.createEvent({
-      start,
-      end,
+      start: start.utc(),
+      end: end.utc(),
       summary: ev.courseName,
       description: `${ev.courseName} | Lecturer: ${ev.lecturer} | Info: ${
         ev.info || ""
